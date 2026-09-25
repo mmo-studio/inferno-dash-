@@ -1,0 +1,42 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y build-essential git wget curl unzip openjdk-17-jdk zlib1g-dev libncurses5-dev libncursesw5-dev libstdc++6:i386 libffi-dev libssl-dev autoconf libtool pkg-config
+
+      - name: Install Buildozer and Cython
+        run: |
+          pip install --upgrade pip
+          pip install --user cython==0.29.36 buildozer
+
+      - name: Build with Buildozer
+        run: |
+          export PATH=$PATH:~/.local/bin
+          buildozer init
+          sed -i 's/#requirements = python3,kivy/requirements = python3,pygame/' buildozer.spec
+          yes | buildozer -v android debug
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
+          
